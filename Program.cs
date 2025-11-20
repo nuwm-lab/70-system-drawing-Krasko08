@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
+// ррррргринг
+
 namespace LabWork
 {
     public class GraphForm : Form
