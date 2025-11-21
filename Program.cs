@@ -1,105 +1,77 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
-// ррррргринг
-
-namespace LabWork
+namespace DynamicGraph
 {
     public class GraphForm : Form
     {
-        private readonly List<PointF> _points;
-
-        private const double XStart = 4.5;
-        private const double XEnd = 16.4;
-        private const double Step = 2.2;
+        private const double XStart = 1.2;
+        private const double XEnd = 6.3;
+        private const double Step = 0.2;
 
         public GraphForm()
         {
-            Text = "Графік y = (x^3 - 2) / (3 ln(x))";
-            BackColor = Color.White;
-            DoubleBuffered = true;
-
-            _points = CalculatePoints();
-
-            Resize += (s, e) => Invalidate();
+            this.Text = "Dynamic Graph";
+            this.Resize += (s, e) => this.Invalidate();
+            this.DoubleBuffered = true;
         }
 
-        private List<PointF> CalculatePoints()
+        private double Function(double x)
         {
-            var points = new List<PointF>();
-
-            for (double x = XStart; x <= XEnd + 0.001; x += Step)
-            {
-                double y = (Math.Pow(x, 3) - 2) / (3 * Math.Log(x));
-                points.Add(new PointF((float)x, (float)y));
-            }
-
-            return points;
+            return (5 * Math.Tan(x + 7)) / Math.Pow(x + 3, 2);
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-
-            if (_points.Count < 2)
-                return;
-
             Graphics g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.Clear(Color.White);
 
-            DrawAxes(g);
-            DrawGraph(g);
-        }
+            int w = this.ClientSize.Width;
+            int h = this.ClientSize.Height;
+            if (w < 50 || h < 50) return;
 
-        private void DrawAxes(Graphics g)
-        {
-            using Pen pen = new Pen(Color.Black, 2);
+            Pen axisPen = new Pen(Color.Black, 2);
+            Pen graphPen = new Pen(Color.Blue, 2);
 
-            // OX
-            g.DrawLine(pen, 40, Height - 40, Width - 20, Height - 40);
+            int x0 = w / 2;
+            int y0 = h / 2;
+            g.DrawLine(axisPen, 0, y0, w, y0);
+            g.DrawLine(axisPen, x0, 0, x0, h);
 
-            // OY
-            g.DrawLine(pen, 40, 20, 40, Height - 40);
-        }
-
-        private void DrawGraph(Graphics g)
-        {
-            float minX = (float)XStart;
-            float maxX = (float)XEnd;
-
-            float minY = float.MaxValue;
-            float maxY = float.MinValue;
-
-            foreach (var p in _points)
+            double minY = double.MaxValue;
+            double maxY = double.MinValue;
+            for (double x = XStart; x <= XEnd; x += Step)
             {
-                minY = Math.Min(minY, p.Y);
-                maxY = Math.Max(maxY, p.Y);
+                double y = Function(x);
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
             }
 
-            float graphWidth = Width - 80;
-            float graphHeight = Height - 80;
+            double scaleX = w / (XEnd - XStart);
+            double scaleY = (h * 0.8) / (maxY - minY);
 
-            using Pen pen = new Pen(Color.Red, 2);
-
-            for (int i = 0; i < _points.Count - 1; i++)
+            PointF? prev = null;
+            for (double x = XStart; x <= XEnd; x += Step)
             {
-                float x1 = 40 + ((_points[i].X - minX) / (maxX - minX)) * graphWidth;
-                float y1 = Height - 40 - ((_points[i].Y - minY) / (maxY - minY)) * graphHeight;
+                double y = Function(x);
 
-                float x2 = 40 + ((_points[i + 1].X - minX) / (maxX - minX)) * graphWidth;
-                float y2 = Height - 40 - ((_points[i + 1].Y - minY) / (maxY - minY)) * graphHeight;
+                float screenX = (float)((x - XStart) * scaleX);
+                float screenY = (float)(h - (y - minY) * scaleY);
 
-                g.DrawLine(pen, x1, y1, x2, y2);
+                PointF current = new PointF(screenX, screenY);
+
+                if (prev != null)
+                {
+                    g.DrawLine(graphPen, prev.Value, current);
+                }
+                prev = current;
             }
         }
-    }
 
-    internal static class Program
-    {
         [STAThread]
-        static void Main()
+        public static void Main()
         {
             Application.EnableVisualStyles();
             Application.Run(new GraphForm());
