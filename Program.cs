@@ -8,14 +8,10 @@ namespace GraphPlotter
 {
     public partial class Form1 : Form
     {
-        // Діапазон X
-        private const double X_MIN = 1.2;
-        private const double X_MAX = 6.3;
+        private double xMin = 1.2;
+        private double xMax = 6.3;
+        private double step = 0.01;
 
-        // Адаптивний крок (≈ 1 вибірка на піксель)
-        private double Step => (X_MAX - X_MIN) / ClientSize.Width;
-
-        // Межі Y — обчислюються автоматично
         private double yMin;
         private double yMax;
 
@@ -25,7 +21,7 @@ namespace GraphPlotter
         {
             InitializeComponent();
 
-            // Увімкнення подвійного буфера
+            // Увімкнення подвійного буфера та перерисовки при resize
             SetStyle(ControlStyles.OptimizedDoubleBuffer |
                      ControlStyles.ResizeRedraw |
                      ControlStyles.AllPaintingInWmPaint |
@@ -41,7 +37,7 @@ namespace GraphPlotter
             DrawGraph(e.Graphics);
         }
 
-        // ------------------ МАЛЮВАННЯ ГРАФІКА ------------------------
+        // ------------------ ОСНОВНЕ МАЛЮВАННЯ ------------------------
 
         private void DrawGraph(Graphics g)
         {
@@ -65,6 +61,7 @@ namespace GraphPlotter
         {
             int w = ClientSize.Width;
             int h = ClientSize.Height;
+
             int div = 10;
 
             for (int i = 0; i <= div; i++)
@@ -80,12 +77,12 @@ namespace GraphPlotter
             }
         }
 
-        // ------------------ ОСІ Й ПІДПИСИ ------------------------
+        // ------------------ ОСІ ТА ПІДПИСИ ------------------------
 
         private void DrawAxes(Graphics g, Pen axisPen, Brush labelBrush, Font font)
         {
-            PointF x1 = new PointF(WorldToScreenX(X_MIN), WorldToScreenY(0));
-            PointF x2 = new PointF(WorldToScreenX(X_MAX), WorldToScreenY(0));
+            PointF x1 = new PointF(WorldToScreenX(xMin), WorldToScreenY(0));
+            PointF x2 = new PointF(WorldToScreenX(xMax), WorldToScreenY(0));
 
             PointF y1 = new PointF(WorldToScreenX(0), WorldToScreenY(yMin));
             PointF y2 = new PointF(WorldToScreenX(0), WorldToScreenY(yMax));
@@ -102,9 +99,8 @@ namespace GraphPlotter
 
             for (int i = 0; i <= ticks; i++)
             {
-                double x = X_MIN + i * (X_MAX - X_MIN) / ticks;
+                double x = xMin + i * (xMax - xMin) / ticks;
                 float sx = WorldToScreenX(x);
-
                 g.DrawLine(Pens.Black, sx, WorldToScreenY(0) - 4, sx, WorldToScreenY(0) + 4);
 
                 var s = g.MeasureString(x.ToString("F2"), font);
@@ -115,16 +111,14 @@ namespace GraphPlotter
             {
                 double y = yMin + i * (yMax - yMin) / ticks;
                 float sy = WorldToScreenY(y);
-
                 g.DrawLine(Pens.Black, WorldToScreenX(0) - 4, sy, WorldToScreenX(0) + 4, sy);
 
                 var s = g.MeasureString(y.ToString("F2"), font);
-                g.DrawString(y.ToString("F2"), font, brush,
-                    WorldToScreenX(0) - s.Width - 6, sy - s.Height / 2);
+                g.DrawString(y.ToString("F2"), font, brush, WorldToScreenX(0) - s.Width - 6, sy - s.Height / 2);
             }
         }
 
-        // ------------------ ФУНКЦІЯ ТА ЇЇ РОЗРИВИ ------------------------
+        // ------------------ МАЛЮВАННЯ ФУНКЦІЇ ------------------------
 
         private void DrawFunction(Graphics g, Pen pen)
         {
@@ -145,11 +139,10 @@ namespace GraphPlotter
             var current = new List<PointF>();
             PointF? prev = null;
 
-            for (double x = X_MIN; x <= X_MAX; x += Step)
+            for (double x = xMin; x <= xMax; x += step)
             {
                 double y = ComputeFunction(x);
 
-                // Обробка розривів
                 if (double.IsNaN(y) || double.IsInfinity(y))
                 {
                     if (current.Count > 0)
@@ -163,7 +156,6 @@ namespace GraphPlotter
 
                 PointF p = WorldToScreen(x, y);
 
-                // Розрив за різким стрибком
                 if (prev.HasValue && Math.Abs(p.Y - prev.Value.Y) > 150)
                 {
                     segments.Add(new List<PointF>(current));
@@ -185,10 +177,12 @@ namespace GraphPlotter
         private double ComputeFunction(double x)
         {
             double denom = Math.Pow(x + 3, 2);
-            if (denom < 1e-6) return double.NaN;
+            if (denom < 1e-6)
+                return double.NaN;
 
             double t = Math.Tan(x + 7);
-            if (Math.Abs(t) > 1e6) return double.NaN;
+            if (Math.Abs(t) > 1e6)
+                return double.NaN;
 
             return 5 * t / denom;
         }
@@ -197,10 +191,10 @@ namespace GraphPlotter
         {
             var values = new List<double>();
 
-            for (double x = X_MIN; x <= X_MAX; x += Step)
+            for (double x = xMin; x <= xMax; x += step)
             {
                 double y = ComputeFunction(x);
-                if (!double.IsNaN(y) && !double.IsInfinity(y) && Math.Abs(y) < 100000)
+                if (!double.IsNaN(y) && !double.IsInfinity(y) && Math.Abs(y) < 10000)
                     values.Add(y);
             }
 
@@ -224,12 +218,12 @@ namespace GraphPlotter
             yMax = max + pad;
         }
 
-        // ------------------ ПЕРЕТВОРЕННЯ КООРДИНАТ ------------------------
+        // ------------------ КООРДИНАТИ ------------------------
 
         private float WorldToScreenX(double x)
         {
             double w = ClientSize.Width - 2 * margin;
-            return margin + (float)((x - X_MIN) * (w / (X_MAX - X_MIN)));
+            return margin + (float)((x - xMin) * (w / (xMax - xMin)));
         }
 
         private float WorldToScreenY(double y)
