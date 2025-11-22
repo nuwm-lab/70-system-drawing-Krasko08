@@ -26,19 +26,18 @@ namespace GraphPlotter
                      ControlStyles.ResizeRedraw |
                      ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.UserPaint, true);
+
             UpdateStyles();
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-
             ComputeYBounds();
             DrawGraph(e.Graphics);
         }
 
         // ------------------ ОСНОВНЕ МАЛЮВАННЯ ------------------------
-
         private void DrawGraph(Graphics g)
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -56,12 +55,10 @@ namespace GraphPlotter
         }
 
         // ------------------ СІТКА ------------------------
-
         private void DrawGrid(Graphics g, Pen gridPen)
         {
             int w = ClientSize.Width;
             int h = ClientSize.Height;
-
             int div = 10;
 
             for (int i = 0; i <= div; i++)
@@ -78,12 +75,10 @@ namespace GraphPlotter
         }
 
         // ------------------ ОСІ ТА ПІДПИСИ ------------------------
-
         private void DrawAxes(Graphics g, Pen axisPen, Brush labelBrush, Font font)
         {
             PointF x1 = new PointF(WorldToScreenX(xMin), WorldToScreenY(0));
             PointF x2 = new PointF(WorldToScreenX(xMax), WorldToScreenY(0));
-
             PointF y1 = new PointF(WorldToScreenX(0), WorldToScreenY(yMin));
             PointF y2 = new PointF(WorldToScreenX(0), WorldToScreenY(yMax));
 
@@ -101,6 +96,7 @@ namespace GraphPlotter
             {
                 double x = xMin + i * (xMax - xMin) / ticks;
                 float sx = WorldToScreenX(x);
+
                 g.DrawLine(Pens.Black, sx, WorldToScreenY(0) - 4, sx, WorldToScreenY(0) + 4);
 
                 var s = g.MeasureString(x.ToString("F2"), font);
@@ -111,6 +107,7 @@ namespace GraphPlotter
             {
                 double y = yMin + i * (yMax - yMin) / ticks;
                 float sy = WorldToScreenY(y);
+
                 g.DrawLine(Pens.Black, WorldToScreenX(0) - 4, sy, WorldToScreenX(0) + 4, sy);
 
                 var s = g.MeasureString(y.ToString("F2"), font);
@@ -119,7 +116,6 @@ namespace GraphPlotter
         }
 
         // ------------------ МАЛЮВАННЯ ФУНКЦІЇ ------------------------
-
         private void DrawFunction(Graphics g, Pen pen)
         {
             var segments = ComputeSegments();
@@ -137,6 +133,7 @@ namespace GraphPlotter
         {
             var segments = new List<List<PointF>>();
             var current = new List<PointF>();
+
             PointF? prev = null;
 
             for (double x = xMin; x <= xMax; x += step)
@@ -173,7 +170,6 @@ namespace GraphPlotter
         }
 
         // ------------------ ОБЧИСЛЕННЯ ------------------------
-
         private double ComputeFunction(double x)
         {
             double denom = Math.Pow(x + 3, 2);
@@ -194,6 +190,7 @@ namespace GraphPlotter
             for (double x = xMin; x <= xMax; x += step)
             {
                 double y = ComputeFunction(x);
+
                 if (!double.IsNaN(y) && !double.IsInfinity(y) && Math.Abs(y) < 10000)
                     values.Add(y);
             }
@@ -205,7 +202,8 @@ namespace GraphPlotter
                 return;
             }
 
-            double min = double.MaxValue, max = double.MinValue;
+            double min = double.MaxValue;
+            double max = double.MinValue;
 
             foreach (double v in values)
             {
@@ -219,7 +217,6 @@ namespace GraphPlotter
         }
 
         // ------------------ КООРДИНАТИ ------------------------
-
         private float WorldToScreenX(double x)
         {
             double w = ClientSize.Width - 2 * margin;
@@ -232,7 +229,9 @@ namespace GraphPlotter
             return margin + (float)((yMax - y) * (h / (yMax - yMin)));
         }
 
-        private PointF WorldToScreen(double x, double y) =>
-            new PointF(WorldToScreenX(x), WorldToScreenY(y));
+        private PointF WorldToScreen(double x, double y)
+        {
+            return new PointF(WorldToScreenX(x), WorldToScreenY(y));
+        }
     }
 }
